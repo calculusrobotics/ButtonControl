@@ -11,21 +11,16 @@ public class MoveBackward extends ECommand {
         // Use requires() here to declare subsystem dependencies
         // eg. requires(chassis);
     	requires(Robot.driveSubsystem);
-    	inGroup("drive");
     }
 
     // Called just before this Command runs the first time
     protected void initialize() {
-        //System.out.printf("MoveBackward\n");
+        System.out.printf("Initialize MOVE BACKWARD\n");
     }
 
     // Called repeatedly when this Command is scheduled to run
-    protected void execute() {
-    	if (!shouldRun()) {
-    		return;
-    	}
-    	
-    	System.out.println("Backward");
+    public void exec() {
+        System.out.printf("Execute MOVE BACKWARD\n");
     	Robot.driveSubsystem.driveBackward();
     }
 
@@ -36,10 +31,12 @@ public class MoveBackward extends ECommand {
 
     // Called once after isFinished returns true
     protected void end() {
+        System.out.printf("End MOVE BACKWARD\n");
     }
 
     // Called when another command which requires one or more of the same
     // subsystems is scheduled to run
-    protected void interrupted() {
+    public void onInterrupted() {
+        System.out.printf("Interrupted MOVE BACKWARD\n");
     }
 }

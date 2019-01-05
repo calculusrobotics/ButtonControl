@@ -9,14 +9,17 @@ package frc.robot;
 
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Joystick;
-//import edu.wpi.first.wpilibj.buttons.Button;
-//import edu.wpi.first.wpilibj.buttons.JoystickButton;
+import edu.wpi.first.wpilibj.buttons.Button;
+import edu.wpi.first.wpilibj.buttons.JoystickButton;
 import edu.wpi.first.wpilibj.command.Scheduler;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import frc.robot.buttoncontrol.ButtonGroup;
-import frc.robot.buttoncontrol.ButtonGroupGroup;
+
 import frc.robot.buttoncontrol.EButton;
+import frc.robot.buttoncontrol.group.ButtonGroup;
+import frc.robot.buttoncontrol.group.ButtonManager;
+// TODO: no wildcard imports
+import frc.robot.buttoncontrol.group.behaviors.*;
 
 /**
  * *****************************************************************************
@@ -66,11 +69,11 @@ public class Robot extends IterativeRobot {
 	public static DriveSubsystem driveSubsystem;
 	
 	private Joystick controller;
+
 	private EButton forward;
 	private EButton backward;
 	private EButton right;
 	private EButton left;
-	private ButtonGroup driveGroup;
 	
 	/**
 	 * This function is run when the robot is first started up and should be
@@ -78,7 +81,6 @@ public class Robot extends IterativeRobot {
 	 */
 	@Override
 	public void robotInit() {
-		System.out.println("Robot made");
 		m_chooser.addDefault("Default Auto", kDefaultAuto);
 		m_chooser.addObject("My Auto", kCustomAuto);
 		SmartDashboard.putData("Auto choices", m_chooser);
@@ -86,28 +88,14 @@ public class Robot extends IterativeRobot {
 		driveSubsystem = new DriveSubsystem();
 		controller = new Joystick(0);	// MAGIC NUMBERS are evil
 		
-		// instanciate driving buttons
-		forward  = new EButton(controller, PS4Constants.TRIANGLE.getValue()); // button 4
-		backward = new EButton(controller, PS4Constants.CROSS.getValue());    // button 2
-		right    = new EButton(controller, PS4Constants.CIRCLE.getValue());   // button 3
-		left     = new EButton(controller, PS4Constants.SQUARE.getValue());   // button 1
+		forward  = new EButton(controller, PS4Constants.TRIANGLE.getValue(), "Forward");
+		backward = new EButton(controller, PS4Constants.CROSS.getValue(), "Backward");
+		right    = new EButton(controller, PS4Constants.CIRCLE.getValue(), "Right");
+		left     = new EButton(controller, PS4Constants.SQUARE.getValue(), "Left");
 		
-		// create a button group for the drive subsystem
-		driveGroup = new ButtonGroup("drive", ButtonGroup.behavior.PRIORITY);
-		// add drive buttons to driveGroup so that they are mutually exclusive
-		driveGroup.add(forward , 4); // highest priority
-		driveGroup.add(backward, 3);
-		driveGroup.add(right   , 2);
-		driveGroup.add(left    , 1); // lowest priority
-		
-		// add the drive group to the ButtonsManager
-		ButtonGroupGroup.add(driveGroup);
-		
-		
-		
-		// set the button commands
-		
-		
+		// NOTE NOTE NOTE:
+		// This is a terrible way to drive a robot, but easily demonstrates
+		// the problems with buttons
 		forward.whenPressed(new MoveForward());
 		forward.whenReleased(new Stop());
 		
@@ -115,15 +103,16 @@ public class Robot extends IterativeRobot {
 		backward.whenReleased(new Stop());
 		
 		right.whileHeld(new TurnRight());
-		right.whenReleased(new Stop());
 		
 		left.whileHeld(new TurnLeft());
-		left.whenReleased(new Stop());
-		
-		
-		
-		// initialize the ButtonsManager
-		ButtonGroupGroup.init();
+
+		ButtonGroup group = new ButtonGroup(4, new OneOrNone());
+		group.add(forward);
+		group.add(backward);
+		group.add(left);
+		group.add(right);
+
+		ButtonManager.add(group);
 	}
 
 	/**

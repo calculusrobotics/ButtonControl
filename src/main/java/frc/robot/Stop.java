@@ -1,6 +1,5 @@
 package frc.robot;
 
-import edu.wpi.first.wpilibj.command.Command;
 import frc.robot.buttoncontrol.ECommand;
 
 /**
@@ -20,7 +19,7 @@ public class Stop extends ECommand {
     }
 
     // Called repeatedly when this Command is scheduled to run
-    protected void execute() {
+    public void exec() {
     	Robot.driveSubsystem.stop();
     }
 
@@ -35,6 +34,6 @@ public class Stop extends ECommand {
 
     // Called when another command which requires one or more of the same
     // subsystems is scheduled to run
-    protected void interrupted() {
+    public void onInterrupted() {
     }
 }

@@ -10,23 +10,20 @@ public class TurnRight extends ECommand {
     public TurnRight() {
         // Use requires() here to declare subsystem dependencies
         // eg. requires(chassis);
+        
+        // TODO: do we still need this if we're using ButtonMadness?
     	requires(Robot.driveSubsystem);
-    	inGroup("drive");
     }
 
     // Called just before this Command runs the first time
     protected void initialize() {
-        //System.out.printf("TurnRight INIT\n");
+        System.out.printf("TurnRight INIT\n");
     }
 
     // Called repeatedly when this Command is scheduled to run
-    protected void execute() {
-    	if (!shouldRun()) {
-    		return;
-    	}
-    	
-    	System.out.println("TurnRight");
+    public void exec() {
         Robot.driveSubsystem.turnRight();
+        System.out.printf("TurnRight EXECUTE\n");
     }
 
     // Make this return true when this Command no longer needs to run execute()
@@ -42,7 +39,7 @@ public class TurnRight extends ECommand {
 
     // Called when another command which requires one or more of the same
     // subsystems is scheduled to run
-    protected void interrupted() {
+    public void onInterrupted() {
         System.out.printf("TurnRight INTERRUPTED\n");
         end();
     }
