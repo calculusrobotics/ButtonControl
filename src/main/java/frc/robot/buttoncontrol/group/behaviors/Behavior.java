@@ -1,5 +1,7 @@
 package frc.robot.buttoncontrol.group.behaviors;
 
+import java.util.ArrayList;
+
 import frc.robot.buttoncontrol.EButton;
 
 /**
@@ -7,14 +9,11 @@ import frc.robot.buttoncontrol.EButton;
  */
 public abstract class Behavior {    
     /**
-     * Handle a given true button for an iteration
+     * Handle the true buttons of a group after they have all been received by the group.
+     * This is always called when there are more than 1 true buttons in the group.
+     * If there is only one, then it is automatically handled by the group by requesting the true command.
      * 
-     * @param true_ran number of true buttons processed so far
-     * @param true_expected number of true buttons in the iteration
-     * @param lastTrueIndex the index of the last true button processed
-     * @param index the index of the current true button being processed
-     * @param iteration the iteration number
-     * @param buttons array of buttons in the ButtonGroup
+     * @param buttons buttons in the group
      */
-    public abstract void handle(int true_ran, int true_expected, EButton lastTrueB, EButton b, EButton[] buttons);
+    public abstract void handle(ArrayList<EButton> buttons);
 }

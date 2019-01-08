@@ -8,15 +8,28 @@ import frc.robot.buttoncontrol.EButton;
 import frc.robot.buttoncontrol.ECommand;
 
 public class ButtonManager {
+    // groups the Manager handles
     private static ArrayList<ButtonGroup> groups = new ArrayList<ButtonGroup>();
+    // buttons the Manager handles
     private static ArrayList<EButton> buttons = new ArrayList<EButton>();
+    // IDs of the buttons the Manager handles
     private static ArrayList<Integer> buttonIDs = new ArrayList<Integer>();
     
-    private static int ran = 0;
-    private static int expected = 0;
-    private static int iteration = 0;
 
-    private static int pings;
+
+    // number of Updates processed in this iteration
+    private static int ran = 0;
+    // number of Updates to be processed in this iteration
+    private static int expected = 0;
+    // iteration number (doesn't have to be the same as that for the driver station. This increments when there was some "change")
+    private static int iteration = 1;
+
+
+
+    // number of groups that have finished processing all their commands
+    private static int pings = 0;
+
+
 
 
 
@@ -25,9 +38,6 @@ public class ButtonManager {
      * ECommands are only "dummy" commands, what is actually run by WPILib are these Updates which subsequently can run the ECommands
      */
     private static class Update extends Command {
-        // What type of command is this (WHEN_PRESSED, WHILE_HELD, WHEN_RELEASED)
-        private final ECommand.CommandType TYPE;
-
         private final int INDEX;
 
 
@@ -38,8 +48,7 @@ public class ButtonManager {
          * @param type what type of command is this (WHEN_PRESSED, WHILE_HELD, WHEN_RELEASED)
          * @param index index of the button this command will be for in the buttons array
          */
-        private Update(ECommand.CommandType type, int index) {
-            TYPE = type;
+        private Update(int index) {
             INDEX = index;
         }
 
@@ -56,7 +65,7 @@ public class ButtonManager {
             ran++;
 
 
-            sendToGroups(INDEX, TYPE);
+            sendToGroups(INDEX);
 
 
             // if all buttons have been processed...
@@ -82,7 +91,7 @@ public class ButtonManager {
 
             if (b.get()) {
                 expected++;
-            } else if (b.getPrevState() == true) {
+            } else if (b.wasJustRun()) {
                 expected++;
             }
         }
@@ -103,31 +112,29 @@ public class ButtonManager {
                 buttons.add(b);
                 buttonIDs.add(id);
 
-                b.e_whenPressed(new Update(ECommand.CommandType.WHEN_PRESSED, index));
-                b.e_whileHeld(new Update(ECommand.CommandType.WHILE_HELD, index));
-                b.e_whenReleased(new Update(ECommand.CommandType.WHEN_RELEASED, index));
+                b.e_whenPressed(new Update(index));
+                b.e_whileHeld(new Update(index));
+                b.e_whenReleased(new Update(index));
             }
         }
     }
 
 
 
-    private static void sendToGroups(int index, ECommand.CommandType type) {
+    private static void sendToGroups(int index) {
         EButton b = buttons.get(index);
 
+        b.updateState(iteration);
+
         for (int i = 0; i < b.getGroupLength(); i++) {
-            groups.get(b.getGroupID(i)).send(b, type);
+            groups.get(b.getGroupID(i)).send(b);
         }
     }
 
     private static void sendIteration() {
         for (int i = 0; i < groups.size(); i++) {
-            groups.get(i).sendIteration(iteration);
+            groups.get(i).setExpected();
         }
-    }
-
-    public static int getIteration() {
-        return iteration;
     }
 
 
@@ -138,18 +145,28 @@ public class ButtonManager {
         if (pings == groups.size()) {
             pings = 0;
 
+            System.out.println("ITERATION " + iteration);
+
             for (int i = 0; i < buttons.size(); i++) {
                 EButton b = buttons.get(i);
 
                 if (b.getReleaseRequests() > 0) {
                     b.getWhenReleased().exec();
+
+                    System.out.println("BUTTON " + b.getName() + ": false | RELEASED");
                 } else if (b.get()) {
                     ECommand c;
 
-                    if (b.getPrevState()) {
+                    System.out.print("BUTTON " + b.getName() + ": true | ");
+
+                    if (b.wasJustRun()) {
                         c = b.getWhileHeld();
+
+                        System.out.print("HELD");
                     } else {
                         c = b.getWhenPressed();
+
+                        System.out.print("PRESSED");
                     }
 
                     if (b.getTrueRequests() == b.getGroupLength()) {
@@ -158,8 +175,12 @@ public class ButtonManager {
                         b.setLTCI(iteration);
                     } else {
                         c.onInterrupted();
+
+                        System.out.println(" | IGNORED");
                     }
                 }
+
+                b.resetRequests();
             }
         }
     }

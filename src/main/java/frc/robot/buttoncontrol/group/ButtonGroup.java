@@ -1,7 +1,8 @@
 package frc.robot.buttoncontrol.group;
 
+import java.util.ArrayList;
+
 import frc.robot.buttoncontrol.EButton;
-import frc.robot.buttoncontrol.ECommand;
 import frc.robot.buttoncontrol.group.behaviors.Behavior;
 
 /**
@@ -12,21 +13,17 @@ public class ButtonGroup {
     private EButton[] buttons;
     // adds in EButtons one by one at index i, incrementing i after adding the button
     private int i;
+    // true buttons to process in the iteration by the Behavior
+    // True Buttons to be Processed
+    private ArrayList<EButton> tbp;
 
 
 
-    // number of true buttons processed by the ButtonGroup in this iteration
-    private int true_ran;
-    // number of true buttons in this iteration
-    private int true_expected;
-    // number of false buttons processed by the ButtonGroup in this iteration
-    private int false_ran;
-    // number of false buttons in this iteration
-    private int false_expected;
+    // number of buttons processed by the ButtonGroup in this iteration so far
+    private int ran;
+    // number of buttons that will be processed in this iteration
+    private int expected;
     // when ran = expected, this means all buttons have been processed, and a new iteration will start soon
-
-    // last true button to get processed
-    private EButton lastTrueB;
 
 
 
@@ -47,13 +44,14 @@ public class ButtonGroup {
         // first index to be added is always 0
         i = 0;
 
+        tbp = new ArrayList<EButton>(count + 1);
 
 
-        true_ran = 0;
-        false_ran = 0;
+
+        // no commands have been processed yet
+        ran = 0;
         // set expected to 0 so that setExpected() will work when it is called the first time
-        true_expected = 0;
-        false_expected = 0;
+        expected = 0;
 
 
 
@@ -74,17 +72,18 @@ public class ButtonGroup {
 
 
     /**
-     * Set the expected number of true buttons for this iterations
+     * Set the expected number of true buttons for this iteration
      */
-    private void setExpected() {
+    public void setExpected() {
         // expected is assumed to be at 0 before the start of a new iteration
 
         // loop through each button and add 1 to true_expected per true button and 1 to false_expected per ex-true false button
         for (int i = 0; i < buttons.length; i++) {
-            if (buttons[i].get()) {
-                true_expected++;
-            } else if (buttons[i].getPrevState() == true) {
-                false_expected++;
+            // if it IS  pressed/held
+            // if it WAS pressed/held and had a command being run (if it gets to here, it means it was just released)
+            //     however, if it was released but had no command being run during the previous iteration, nothing happens to it
+            if (buttons[i].get() || buttons[i].wasJustRun()) {
+                expected++;
             }
         }
     }
@@ -117,34 +116,47 @@ public class ButtonGroup {
 
 
 
-    public void send(EButton b, ECommand.CommandType type) {
-        if (type == ECommand.CommandType.WHEN_RELEASED) {
-            false_ran++;
+    public void send(EButton b) {
+        ran++;
 
+        // if the button was just released and was active in the previous iteration, (request to) release it programatically
+        if (b.get() == false && b.wasJustRun()) {
             // request executing the when released command
             b.requestRelease();
         } else {
-            true_ran++;
-
-            beh.handle(true_ran, true_expected, lastTrueB, b, buttons);
-
-            lastTrueB = b;
+            // add this button to the list of buttons that will need to be handled by the Behavior soon
+            tbp.add(b);
         }
 
-        if (true_ran == true_expected && false_ran == false_expected) {
+        // once every button has been received
+        if (ran == expected) {
+            int size = tbp.size();
+
+            // if there were no released buttons that were previously active, then decide what to do with the pressed/held ones
+            // this way, those buttons will have their whenReleased called without possibly contradicting the other ones.
+            if (expected - size == 0) {
+                // if there was only one true button, request for its true command to be called automatically without giving it to
+                // the Behavior
+                if (tbp.size() == 1) {
+                    tbp.get(0).requestTrue();
+                // if there were more true buttons, then we need the buttons to be sent to the Behavior to determine what to do
+                } else if (tbp.size() != 0) {
+                    // handle all the true buttons
+                    beh.handle(tbp);
+                }
+            }
+            
+
             // reset the number of processed and expected buttons for the next iteration
-            true_ran = 0;
-            false_ran = 0;
+            ran = 0;
+            expected = 0;
 
-            true_expected = 0;
-            false_expected = 0;
+            // clear the true buttons to be processed
+            tbp.clear();
 
+            // this group is done, tell the Manager
             ping();
         }
-    }
-
-    public void sendIteration(int it) {
-        setExpected();
     }
 
 
